@@ -423,180 +423,75 @@
 #         st.markdown(assistant_message)
 
 import streamlit as st
-import openai
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-from datetime import datetime, timedelta
-import base64
-import streamlit as st
-import requests
-import base64
+import datetime
+from openai import OpenAI
 
-# F1-Themed Styling
-st.set_page_config(page_title="F1 Expert", page_icon="🏎️", layout="wide")
+# --- App Configuration ---
+st.set_page_config(page_title="F1 Chatbot", page_icon=":racing_car:", layout="wide")
 
-# Function to fetch an image from Unsplash
-def fetch_image():
-    client_id = "eWZJSdWEt5x6lfUatkigWFkrTv6r_fR3f4J04Dyuyrk"  # Replace with your Unsplash Access Key
-    query = "Formula 1"
-    url = f"https://api.unsplash.com/photos/random?query={query}&client_id={client_id}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        json_data = response.json()
-        image_url = json_data['urls']['regular']
-        return image_url
-    else:
-        return "https://fallback_image_url.jpg"  # A fallback image URL in case API fails
-
-# Get the image URL
-background_image_url = fetch_image()
-
-# Using the image as a background
-st.markdown(f"""
-<style>
-body {{
-    background-image: url("{background_image_url}");
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
-    color: white;
-    font-family: 'Racing Sans One', cursive;
-}}
-header {{
-    font-size: 2em;
-    text-align: center;
-    margin-top: 10px;
-    margin-bottom: 10px;
-}}
-footer {{
-    font-size: 1em;
-    text-align: center;
-    margin-top: 20px;
-}}
-.css-18e3th9 {{
-    padding: 20px;
-    border-radius: 10px;
-    background-color: rgba(0, 0, 0, 0.5);  # Semi-transparent background for containers
-}}
-.st-ae {{
-    border-radius: 10px;
-}}
-h1, h2, h3, h4, h5, h6 {{
-    color: #ff1e00;  # Bright red for headings
-}}
-.chat-message {{
-    border-radius: 5px;
-    padding: 10px;
-    margin-bottom: 10px;
-    background-color: rgba(255, 255, 255, 0.8);  # Semi-transparent background for chat
-}}
-.user-message {{
-    color: black;
-}}
-.assistant-message {{
-    color: black;
-}}
-</style>
+# Custom CSS Styling
+st.markdown("""
+    <style>
+    body { background-color: #f4f4f4; color: #333; font-family: 'Arial', sans-serif; }
+    .main-container { padding: 20px; }
+    .chat-container { border: 1px solid #ddd; border-radius: 10px; padding: 20px; background-color: #fff; max-height: 500px; overflow-y: auto; margin-bottom: 20px; }
+    .message { margin: 10px 0; padding: 10px; border-radius: 10px; max-width: 60%; }
+    .user-message { background-color: #dcf8c6; align-self: flex-end; text-align: right; }
+    .assistant-message { background-color: #ececec; align-self: flex-start; text-align: left; }
+    .input-container { display: flex; justify-content: space-between; align-items: center; }
+    .input-box { flex-grow: 1; margin-right: 10px; padding: 10px; border-radius: 5px; border: 1px solid #ddd; }
+    .send-button { background-color: #ff4b4b; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+    .send-button:disabled { background-color: #ccc; }
+    .standings-container { margin-bottom: 20px; }
+    </style>
 """, unsafe_allow_html=True)
 
-# Fetch Latest F1 Standings and Schedule (Cache with Expiry)
-@st.cache_data(ttl=3600)  # Cache for 1 hour (adjust as needed)
-def get_f1_data():
-    standings_url = "https://www.formula1.com/en/results/driver-standings.html"
-    schedule_url = "https://www.formula1.com/en/results.html"
-
-    standings_response = requests.get(standings_url)
-    schedule_response = requests.get(schedule_url)
-
-    if standings_response.status_code == 200 and schedule_response.status_code == 200:
-        standings_soup = BeautifulSoup(standings_response.content, "html.parser")
-        schedule_soup = BeautifulSoup(schedule_response.content, "html.parser")
-        
-        # Extract race schedule data
-        schedule_elements = schedule_soup.find_all("a", class_="event-item")
-        schedule_data = []
-        for element in schedule_elements:
-            race_name = element.find("span", class_="event-title").text
-            race_date_str = element.find("span", class_="start-date").text
-            race_date = datetime.strptime(race_date_str, "%d %b").replace(year=datetime.now().year)
-            if race_date < datetime.now():  # Skip past races
-                continue
-            schedule_data.append({"name": race_name, "date": race_date})
-            
-        # Extract driver standings data
-        standings_table = standings_soup.find("table", class_="resultsarchive-table")
-        standings_df = pd.read_html(str(standings_table))[0]
-        standings_df = standings_df[['Pos', 'Driver', 'Nationality', 'Car', 'PTS']]
-
-        return standings_df, schedule_data
-
+# --- Data Fetching Function ---
+@st.cache(ttl=86400, show_spinner=False)
+def get_f1_standings(year=None):
+    if year is None:
+        year = datetime.datetime.now().year
+    url = f"https://www.formula1.com/en/results.html/{year}/drivers.html"
+    response = requests.get(url)
+    if response.ok:
+        soup = BeautifulSoup(response.content, "html.parser")
+        table = soup.find("table", class_="resultsarchive-table")
+        df = pd.read_html(str(table))[0]
+        return df[['Pos', 'Driver', 'Nationality', 'Car', 'PTS']]
     else:
-        return pd.DataFrame(), []
+        st.error(f"Error fetching F1 standings for {year}: {response.status_code}")
+        return pd.DataFrame()
 
-# Display F1 Standings and Schedule
-standings_df, schedule_data = get_f1_data()
-
-# Header
-st.markdown('<header>F1 Expert 🏎️</header>', unsafe_allow_html=True)
-st.caption("Your personalized guide to the Formula 1 world!")
-
-# Layout: Standings and Filters
-st.subheader("Current Driver Standings")
-col1, col2 = st.columns([1, 3])
-
-# Filter options with "All" option
-nationality_options = ["All"] + standings_df["Nationality"].unique().tolist()
-selected_nationality = col1.selectbox("Filter by Nationality", nationality_options)
-
-if selected_nationality == "All":
-    filtered_standings = standings_df
-else:
-    filtered_standings = standings_df[standings_df["Nationality"] == selected_nationality]
-
-filtered_standings = filtered_standings.reset_index(drop=True)
-col2.dataframe(filtered_standings.style.set_properties(**{'text-align': 'center'}))
-
-# Display Upcoming Races
-st.subheader("Upcoming Races")
-for race in schedule_data:
-    st.markdown(f"**{race['name']}**: {race['date'].strftime('%Y-%m-%d')}")
-
-# OpenAI Chatbot Integration (F1-Specific with System Message)
-openai.api_key = "sk-proj-xwUxmOs0ZkUegvZYyBuuT3BlbkFJ4wK9AngasGlQ104aLrDb"  # Replace with your ACTUAL API key
-
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "system", "content": "You are an expert in Formula 1 racing. Answer questions about F1 drivers, teams, races, history, rules, and any other relevant F1 topics. Please be concise and informative."}
-    ]
-
-# Chat container
-st.subheader("Ask the F1 Expert")
-chat_container = st.container()
-
-# Display messages
-for message in st.session_state.messages:
-    with chat_container:
-        if message["role"] == "user":
-            st.markdown(f"<div class='chat-message user-message'>{message['content']}</div>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<div class='chat-message assistant-message'>{message['content']}</div>", unsafe_allow_html=True)
-
-# User input for chat
-if prompt := st.chat_input("Ask me about F1..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with chat_container:
-        st.markdown(f"<div class='chat-message user-message'>{prompt}</div>", unsafe_allow_html=True)
-
-    response = openai.ChatCompletion.create(
+# --- Chatbot Logic ---
+def handle_user_input(user_input):
+    openai_api_key = "your_openai_api_key_here"
+    client = OpenAI(api_key=openai_api_key)
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=st.session_state.messages,
+        messages=[{"role": "user", "content": user_input}],
     )
+    return response.choices[0].message['content']
 
-    assistant_message = response.choices[0].message['content']
-    st.session_state.messages.append({"role": "assistant", "content": assistant_message})
-    with chat_container:
-        st.markdown(f"<div class='chat-message assistant-message'>{assistant_message}</div>", unsafe_allow_html=True)
+# --- Main App Interface ---
+def main():
+    st.title("F1 Chatbot")
+    st.caption("Your pit stop for F1 news, stats, and expert analysis!")
 
-# Footer
-st.markdown('<footer>Powered by OpenAI & Streamlit</footer>', unsafe_allow_html=True)
+    user_input = st.text_input("Ask me anything about Formula 1:", "")
+    if st.button("Send"):
+        if user_input:
+            st.session_state.messages.append(user_input)
+            response = handle_user_input(user_input)
+            st.session_state.messages.append(response)
+            for message in st.session_state.messages:
+                st.text(message)
+
+    standings_df = get_f1_standings()
+    if not standings_df.empty:
+        st.write(standings_df)
+
+if __name__ == "__main__":
+    main()
