@@ -1,28 +1,32 @@
-🏎️ F1 Expert Streamlit App
-📋 Introduction
-The F1 Expert is a Streamlit-based web application designed to provide users with real-time information about Formula 1, including the latest driver standings, race schedules, and interactive Q&A sessions powered by OpenAI’s GPT-3.5 model. This app is a go-to resource for Formula 1 fans who want a quick, informative, and interactive way to stay updated on the sport they love.
+# 🏎️ F1 Expert Streamlit App
 
-✨ Features
-🏆 Current Driver Standings: Get the latest standings of Formula 1 drivers in the ongoing championship.
-📅 Upcoming Races: Stay informed about upcoming F1 races with details on dates and venues.
-🤖 Interactive F1 Q&A: Ask F1-related questions and receive AI-generated answers using OpenAI’s GPT-3.5.
-🌄 Dynamic Backgrounds: Enjoy visually appealing background images related to F1, dynamically fetched from Unsplash.
-⚙️ Installation
-🛠️ Prerequisites
+## 📋 Introduction
+The **F1 Expert** is a Streamlit-based web application designed to provide users with real-time information about Formula 1, including the latest driver standings, race schedules, and interactive Q&A sessions powered by OpenAI’s GPT-3.5 model. This app is a go-to resource for Formula 1 fans who want a quick, informative, and interactive way to stay updated on the sport they love.
+
+## ✨ Features
+- 🏆 **Current Driver Standings**: Get the latest standings of Formula 1 drivers in the ongoing championship.
+- 📅 **Upcoming Races**: Stay informed about upcoming F1 races with details on dates and venues.
+- 🤖 **Interactive F1 Q&A**: Ask F1-related questions and receive AI-generated answers using OpenAI’s GPT-3.5.
+- 🌄 **Dynamic Backgrounds**: Enjoy visually appealing background images related to F1, dynamically fetched from Unsplash.
+
+## ⚙️ Installation
+
+### 🛠️ Prerequisites
 Ensure you have the following installed on your system:
+- **Python** 3.7 or higher
+- **Pip** (Python package manager)
+- **API key from OpenAI** (for GPT-3.5)
+- **API key from Unsplash** (for fetching background images)
 
-Python 3.7 or higher
-Pip (Python package manager)
-API key from OpenAI (for GPT-3.5)
-API key from Unsplash (for fetching background images)
-📝 Setup Instructions
-Clone the repository:
+### 📝 Setup Instructions
 
-bash
-Copy code
-git clone https://github.com/yourusername/f1-expert-app.git
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/yourusername/f1-expert-app.git
+   cd f1-expert-app
+
 cd f1-expert-app
-Install required dependencies:
+2. **Install required dependencies:**
 
 bash
 Copy code
@@ -43,7 +47,7 @@ streamlit run app.py
 🚀 Usage
 Once the app is running, open your browser and navigate to http://localhost:8501.
 
-View F1 Standings: Check the latest driver standings.
+## View F1 Standings: Check the latest driver standings.
 Explore Upcoming Races: Discover upcoming races, including dates and locations.
 Interact with F1 Expert: Ask questions about F1, and the app will provide AI-generated responses.
 Nationality Filter: Filter driver standings by nationality to focus on specific drivers from different countries.
